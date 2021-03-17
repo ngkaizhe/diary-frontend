@@ -1,6 +1,14 @@
 import React from 'react';
-import 'react-bulma-components/dist/react-bulma-components.min.css';
-import { Box, Navbar, Tile, Heading, Section } from 'react-bulma-components';
+
+import Button from 'react-bulma-components/lib/components/button';
+import Heading from 'react-bulma-components/lib/components/heading';
+import Section from 'react-bulma-components/lib/components/section';
+import Tile from 'react-bulma-components/lib/components/tile';
+import Navbar from 'react-bulma-components/lib/components/navbar';
+import Box from 'react-bulma-components/lib/components/box';
+import { Field, Control, Label, Input, Textarea } from 'react-bulma-components/lib/components/form';
+
+import './App.scss';
 
 
 class DiaryContent extends React.Component {
@@ -12,28 +20,62 @@ class DiaryContent extends React.Component {
 		};
 
 		this.handleChange = this.handleChange.bind(this);
-		this.handleSubmit = this.handleSave.bind(this);
+		this.handleSave = this.handleSave.bind(this);
+		this.handleCancel = this.handleCancel.bind(this);
 	}
 
-	handleChange(event) {
-		this.setState({ value: event.target.value });
+	handleChange(evt) {
+		const value = evt.target.value;
+		this.setState({
+			[evt.target.name]: value,
+		});
 	}
 
 	handleSave(event) {
-		alert('A name was submitted: ' + this.state.value);
+		console.log('Diary Title is: ' + this.state.diary_title);
+		// save the diary data to the back end
+		event.preventDefault();
+	}
+
+	handleCancel(event) {
+		console.log('Diary Title is: ' + this.state.diary_title);
+		// redirect back to dashboard
 		event.preventDefault();
 	}
 
 	render() {
 		return (
-			<div>
-				{/* diary title */}
-				<Heading>{this.state.diary_title}</Heading>
-				{/* diary content */}
-				<div>{"One"}</div>
-				<div>{"Two"}</div>
-				<div>{"Three"}</div>
-			</div>
+			<>
+				<Field>
+					<Label>Title</Label>
+					<Control>
+						<Input
+							onChange={this.handleChange}
+							name="diary_title"
+							value={this.state.diary_title} />
+					</Control>
+				</Field>
+
+				<Field>
+					<Label>Content</Label>
+					<Control>
+						<Textarea
+							rows="20"
+							onChange={this.handleChange}
+							name="diary_content"
+							value={this.state.diary_content} />
+					</Control>
+				</Field>
+
+				<Field kind="group">
+					<Control>
+						<Button type="primary" onClick={this.handleSave}>Save</Button>
+					</Control>
+					<Control>
+						<Button color="link" onClick={this.handleCancel}>Cancel</Button>
+					</Control>
+				</Field>
+			</>
 
 		);
 
@@ -82,7 +124,7 @@ function App() {
 					<Tile kind="parent">
 						{/* right side of main content */}
 						{/* the content of the diary */}
-						<Tile kind="child" notification color="primary" >
+						<Tile kind="child" notification color="info" >
 							<DiaryContent></DiaryContent>
 						</Tile>
 					</Tile>
