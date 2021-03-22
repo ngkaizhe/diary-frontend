@@ -34,9 +34,11 @@ class App extends React.Component {
 		};
 
 		this.handleDiarySave = this.handleDiarySave.bind(this);
+		this.handleDiaryDelete = this.handleDiaryDelete.bind(this);
 		this.handleDiaryAbstractOnClick = this.handleDiaryAbstractOnClick.bind(this);
 	}
 
+	//#region Handle some function from the children component
 	handleDiarySave(diary) {
 		// save the data for frontend cache
 		var diaries = this.state.diaries;
@@ -52,14 +54,33 @@ class App extends React.Component {
 			diaries: diaries,
 		});
 
-
 		// save the data for backend
 		this.updateDiaries(diary);
 	}
 
+	handleDiaryDelete(diary) {
+		// delete the data for frontend cache
+		var diaries = this.state.diaries;
+		diaries = diaries.filter((item) => {
+			return item.id !== diary.id;
+		});
+
+		this.setState({
+			diaries: diaries,
+		});
+
+		// we update the currentViewingID
+		this.setState({
+			currentViewingIndex: 0,
+		});
+
+		// delete the data for backend
+		this.destroyDiaries(diary.id);
+	}
+
 	handleDiaryAbstractOnClick(diary_id) {
 		var currentViewingIndex = -1;
-
+		// eslint-disable-next-line
 		var find = this.state.diaries.some((element, index) => {
 			if (element.id === diary_id) {
 				currentViewingIndex = index;
@@ -77,6 +98,7 @@ class App extends React.Component {
 			throw new Error('Something went wrong, the diary id passed from children component could not find!');
 		}
 	}
+	//#endregion
 
 	//#region backend approaches
 	// index
@@ -155,34 +177,54 @@ class App extends React.Component {
 
 	// update
 	updateDiaries(diary) {
-		apiClient.get(process.env.REACT_APP_BACKEND_DOMAIN + '/sanctum/csrf-cookie')
-			.then(response => {
-				apiClient({
-					method: 'post',
-					url: process.env.REACT_APP_BACKEND_DOMAIN + '/api/diaries/' + diary.id,
-					data: {
-						title: diary.title,
-						content: diary.content,
-						diary_date: diary.diary_date,
-						_method: 'PUT',
-					},
-					headers: {
-						Authorization: "Bearer " + this.state.user_token,
-						Accept: "application/json",
-					},
-				}).catch((error) => {
-					if (error.response) {
-						throw new Error('The status code is ' + error.response.status +
-							'\nThe status text is ' + error.response.statusText
-						);
-					}
+		if (false) {
+			apiClient.get(process.env.REACT_APP_BACKEND_DOMAIN + '/sanctum/csrf-cookie')
+				.then(response => {
+
 				});
-			});
+		}
+
+		apiClient({
+			method: 'post',
+			url: process.env.REACT_APP_BACKEND_DOMAIN + '/api/diaries/' + diary.id,
+			data: {
+				title: diary.title,
+				content: diary.content,
+				diary_date: diary.diary_date,
+				_method: 'PUT',
+			},
+			headers: {
+				Authorization: "Bearer " + this.state.user_token,
+				Accept: "application/json",
+			},
+		}).catch((error) => {
+			if (error.response) {
+				throw new Error('The status code is ' + error.response.status +
+					'\nThe status text is ' + error.response.statusText
+				);
+			}
+		});
 	}
 
 	// destroy
 	destroyDiaries(diaries_id) {
-
+		apiClient({
+			method: 'post',
+			url: process.env.REACT_APP_BACKEND_DOMAIN + '/api/diaries/' + diaries_id,
+			data: {
+				_method: 'DELETE',
+			},
+			headers: {
+				Authorization: "Bearer " + this.state.user_token,
+				Accept: "application/json",
+			},
+		}).catch((error) => {
+			if (error.response) {
+				throw new Error('The status code is ' + error.response.status +
+					'\nThe status text is ' + error.response.statusText
+				);
+			}
+		});
 	}
 
 	//#endregion
@@ -238,8 +280,9 @@ class App extends React.Component {
 							<Tile kind="child" notification color="info" size={12}>
 								<DiaryRightContent
 									diary={this.state.diaries[this.state.currentViewingIndex]}
-									key={this.state.currentViewingIndex}
+									key={this.state.currentViewingIndex !== -1 ? this.state.diaries[this.state.currentViewingIndex].id : 0}
 									handleDiarySave={this.handleDiarySave}
+									handleDiaryDelete={this.handleDiaryDelete}
 								></DiaryRightContent>
 							</Tile>
 						</Tile>

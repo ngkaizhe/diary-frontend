@@ -15,7 +15,8 @@ class DiaryRightContent extends React.Component {
         };
 
         this.handleChange = this.handleChange.bind(this);
-        this.handleSave = this.handleSave.bind(this);
+        this.handleDiarySave = this.handleDiarySave.bind(this);
+        this.handleDiaryDelete = this.handleDiaryDelete.bind(this);
     }
 
     handleChange(evt) {
@@ -25,11 +26,26 @@ class DiaryRightContent extends React.Component {
         });
     }
 
-    handleSave(event) {
+    handleDiarySave(event) {
         const diary = this.state;
         // pass the "save diary data" event to the parent component
         this.props.handleDiarySave(diary);
 
+        event.preventDefault();
+    }
+
+    handleDiaryDelete(event) {
+        // create an alert to make sure the user wanted to delete the diary
+        var answer = window.confirm("You sure you want to delete your diary?");
+        if (answer) {
+            // delete the diary
+            const diary = this.state;
+            // pass the "save diary data" event to the parent component
+            this.props.handleDiaryDelete(diary);
+        }
+        else {
+            // do nothing
+        }
         event.preventDefault();
     }
 
@@ -70,7 +86,10 @@ class DiaryRightContent extends React.Component {
 
                 <Field kind="group">
                     <Control>
-                        <Button type="primary" onClick={this.handleSave}>Save</Button>
+                        <Button type="primary" onClick={this.handleDiarySave}>Save</Button>
+                    </Control>
+                    <Control>
+                        <Button type="primary" onClick={this.handleDiaryDelete}>Delete</Button>
                     </Control>
                 </Field>
             </>
