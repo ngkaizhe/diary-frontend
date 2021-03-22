@@ -17,6 +17,7 @@ class DiaryRightContent extends React.Component {
         this.handleChange = this.handleChange.bind(this);
         this.handleDiarySave = this.handleDiarySave.bind(this);
         this.handleDiaryDelete = this.handleDiaryDelete.bind(this);
+        this.handleDiaryCreateCancel = this.handleDiaryCreateCancel.bind(this);
     }
 
     handleChange(evt) {
@@ -28,8 +29,17 @@ class DiaryRightContent extends React.Component {
 
     handleDiarySave(event) {
         const diary = this.state;
-        // pass the "save diary data" event to the parent component
-        this.props.handleDiarySave(diary);
+        // validated the diary's content
+        if (diary.title === '') {
+            alert('Diary title must not be empty!');
+        }
+        else if (diary.content === '') {
+            alert('Diary content must not be empty!');
+        }
+        else {
+            // pass the "save diary data" event to the parent component
+            this.props.handleDiarySave(diary);
+        }
 
         event.preventDefault();
     }
@@ -49,8 +59,21 @@ class DiaryRightContent extends React.Component {
         event.preventDefault();
     }
 
+    handleDiaryCreateCancel(event) {
+        // create an alert to make sure the user wanted to cancel creating diary
+        var answer = window.confirm("You sure you want to cancel creating your diary?");
+        if (answer) {
+            // pass the "cancel creating the diary" event to the parent component
+            this.props.handleDiaryCreateCancel();
+        }
+        else {
+            // do nothing
+        }
+        event.preventDefault();
+    }
+
     componentDidMount() {
-        // the diary waasn't undefined
+        // the diary wasn't undefined
         if (this.props.diary) {
             this.setState({
                 id: this.props.diary.id,
@@ -89,7 +112,10 @@ class DiaryRightContent extends React.Component {
                         <Button type="primary" onClick={this.handleDiarySave}>Save</Button>
                     </Control>
                     <Control>
-                        <Button type="primary" onClick={this.handleDiaryDelete}>Delete</Button>
+                        <Button
+                            type="primary"
+                            onClick={this.props.create_mode ? this.handleDiaryCreateCancel : this.handleDiaryDelete}
+                        >{this.props.create_mode ? 'Cancel' : 'Delete'}</Button>
                     </Control>
                 </Field>
             </>

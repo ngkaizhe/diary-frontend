@@ -13,7 +13,7 @@ import DiaryLeftContent from './DiaryLeftContent';
 import DiaryRightContent from './DiaryRightContent';
 
 // date format changing
-import { compareAsc } from 'date-fns'
+import { format, compareAsc } from 'date-fns'
 
 // css files
 import './App.scss';
@@ -31,31 +31,87 @@ class App extends React.Component {
 			user_token: '1|nB8uQJEW3p9u0eH94ucgWTTHy5YvJXwmv5B5nEKK',
 			diaries: [],
 			currentViewingIndex: -1,
+
+			// for navbar burger usage
+			isActive: false,
+
+			// for creating diary
+			create_mode: false,
 		};
 
 		this.handleDiarySave = this.handleDiarySave.bind(this);
 		this.handleDiaryDelete = this.handleDiaryDelete.bind(this);
 		this.handleDiaryAbstractOnClick = this.handleDiaryAbstractOnClick.bind(this);
+		this.handleDiaryCreateCancel = this.handleDiaryCreateCancel.bind(this);
+
+		this.handleCreateDiary = this.handleCreateDiary.bind(this);
+	}
+
+	handleCreateDiary(e) {
+		// we just update front end only
+		// to store at backend, we will do at this.handleDiarySave part
+		if (this.state.create_mode === false) {
+			this.setState({
+				create_mode: true,
+			});
+
+			var diary = {
+				id: -1,
+				title: '',
+				content: '',
+				diary_date: format(Date.now(), 'yyyy-MM-dd HH:mm:ss'),
+			}
+			var diaries = this.state.diaries;
+			diaries.push(diary);
+
+			var currentViewingIndex = diaries.length - 1;
+			this.setState({
+				currentViewingIndex: currentViewingIndex,
+			});
+		}
+		// the user tries to reclick the create diary button
+		else {
+			alert('Please fill up the title and content of the created diary and save it, before you create another diary!')
+		}
+
+		e.preventDefault();
 	}
 
 	//#region Handle some function from the children component
 	handleDiarySave(diary) {
-		// save the data for frontend cache
-		var diaries = this.state.diaries;
-		diaries.forEach((element) => {
-			if (element.id === diary.id) {
-				element.title = diary.title;
-				element.content = diary.content;
-				diary = element;
-			}
-		});
+		// store
+		if (this.state.create_mode) {
+			var diaries = this.state.diaries;
+			diary.diary_date = diaries[diaries.length - 1].diary_date;
+			diaries[diaries.length - 1] = diary;
 
-		this.setState({
-			diaries: diaries,
-		});
+			this.setState({
+				diaries: diaries,
+			});
 
-		// save the data for backend
-		this.updateDiaries(diary);
+			// update backend
+			this.storeDiary(diary);
+		}
+
+		// update
+		else {
+			// save the data for frontend cache
+			var diaries = this.state.diaries;
+			diaries.forEach((element) => {
+				if (element.id === diary.id) {
+					element.title = diary.title;
+					element.content = diary.content;
+					diary = element;
+				}
+			});
+
+			this.setState({
+				diaries: diaries,
+			});
+
+			// save the data for backend
+			this.updateDiaries(diary);
+		}
 	}
 
 	handleDiaryDelete(diary) {
@@ -69,7 +125,7 @@ class App extends React.Component {
 			diaries: diaries,
 		});
 
-		// we update the currentViewingID
+		// we update the currentViewingIndex
 		this.setState({
 			currentViewingIndex: 0,
 		});
@@ -79,24 +135,43 @@ class App extends React.Component {
 	}
 
 	handleDiaryAbstractOnClick(diary_id) {
-		var currentViewingIndex = -1;
-		// eslint-disable-next-line
-		var find = this.state.diaries.some((element, index) => {
-			if (element.id === diary_id) {
-				currentViewingIndex = index;
-				return true;
-			}
-		});
-
-		if (find) {
-			// the diary from left view was clicked, we change the diary right content view
-			this.setState({
-				currentViewingIndex: currentViewingIndex,
-			});
+		// we are in creating mode, 
+		// if the user wants to view the other diary,
+		// we should tell the user, either save the created diary/cancel creating diary
+		if (this.state.create_mode) {
+			alert('Please save your created diary or cancel creating diary!');
 		}
 		else {
-			throw new Error('Something went wrong, the diary id passed from children component could not find!');
+			var currentViewingIndex = -1;
+			// eslint-disable-next-line
+			var find = this.state.diaries.some((element, index) => {
+				if (element.id === diary_id) {
+					currentViewingIndex = index;
+					return true;
+				}
+			});
+
+			if (find) {
+				// the diary from left view was clicked, we change the diary right content view
+				this.setState({
+					currentViewingIndex: currentViewingIndex,
+				});
+			}
+			else {
+				throw new Error('Something went wrong, the diary id passed from children component could not find!');
+			}
 		}
+	}
+
+	handleDiaryCreateCancel() {
+		var diaries = this.state.diaries;
+		diaries.pop();
+		var currentViewingIndex = this.state.currentViewingIndex - 1;
+		this.setState({
+			diaries: diaries,
+			create_mode: false,
+			currentViewingIndex: currentViewingIndex,
+		});
 	}
 	//#endregion
 
@@ -135,44 +210,38 @@ class App extends React.Component {
 						'\nThe status text is ' + error.response.statusText
 					);
 				}
-
 			});
 	}
 
 	// store
-	storeDiaries(diary) {
-		// fetch data from backend
-		// header
-		var myHeaders = new Headers();
-		myHeaders.append(
-			"Authorization", "Bearer " + this.state.user_token
-		);
-		myHeaders.append(
-			"Accept", "application/json"
-		);
-
-		// form data
-		var formdata = new FormData();
-		formdata.append("title", diary.title);
-		formdata.append("diary_date", diary.diary_date);
-		formdata.append("content", diary.content);
-
-		var requestOptions = {
+	storeDiary(diary) {
+		apiClient({
 			method: 'POST',
-			headers: myHeaders,
-			body: formdata,
-		};
+			url: process.env.REACT_APP_BACKEND_DOMAIN + '/api/diaries',
+			headers: {
+				Authorization: "Bearer " + this.state.user_token,
+				Accept: "application/json",
+			},
+			data: diary,
+		}).then((response) => {
+			// update the id values
+			var diaries = this.state.diaries;
+			var currentViewingIndex = diaries.length - 1;
+			diaries[currentViewingIndex].id = response.data.id;
 
-		fetch(process.env.REACT_APP_BACKEND_DOMAIN + "/api/diaries", requestOptions)
-			.then((response) => {
-				if (response.ok) {
-					return response.text();
-				}
-				else {
-					throw new Error('Something went wrong, the status code is not 200');
-				}
-			})
-			.catch(error => console.log('Error', error));
+			// update front end
+			this.setState({
+				diaries: diaries,
+				currentViewingIndex: currentViewingIndex,
+				create_mode: false,
+			});
+		}).catch((error) => {
+			if (error.response) {
+				throw new Error('The status code is ' + error.response.status +
+					'\nThe status text is ' + error.response.statusText
+				);
+			}
+		});
 	}
 
 	// update
@@ -234,6 +303,19 @@ class App extends React.Component {
 	}
 
 	render() {
+		// calculate the diary right content key value
+		var diaryRightContentKey;
+		if (this.state.create_mode) {
+			diaryRightContentKey = -1;
+		}
+		else if (this.state.currentViewingIndex !== -1) {
+			diaryRightContentKey = this.state.diaries[this.state.currentViewingIndex].id;
+		}
+		// default condition, that when refreshing the page, we dont have any diaries content yet
+		else {
+			diaryRightContentKey = 0;
+		}
+
 		return (
 			<Box>
 				{/* navigation bar */}
@@ -242,22 +324,46 @@ class App extends React.Component {
 						<Navbar.Item renderAs="a" href="#">
 							My Diary
 						</Navbar.Item>
-						<Navbar.Burger />
+						<a
+							onClick={() => {
+								this.setState((state) => ({
+									isActive: !state.isActive
+								}));
+							}}
+							role="button"
+							className={`navbar-burger burger ${this.state.isActive ? "is-active" : ""}`}
+							aria-label="menu"
+							aria-expanded="false"
+							data-target="navbarBasicExample"
+						>
+							<span aria-hidden="true"></span>
+							<span aria-hidden="true"></span>
+							<span aria-hidden="true"></span>
+						</a>
 					</Navbar.Brand>
-					<Navbar.Menu>
-						<Navbar.Container position="end">
-							<Navbar.Item dropdown hoverable href="#">
-								<Navbar.Link>
+					<div
+						id="navbarBasicExample"
+						className={`navbar-menu ${this.state.isActive ? "is-active" : ""}`}
+					>
+						<div className="navbar-start">
+							<a
+								className="navbar-item"
+								onClick={this.handleCreateDiary}
+							>Create Diary</a>
+						</div>
+						<div className="navbar-end">
+							<div className="navbar-item has-dropdown is-hoverable">
+								<div className="navbar-link is-unselectable">
 									Name of current person
-							  </Navbar.Link>
-								<Navbar.Dropdown>
-									<Navbar.Item href="#">
+        						</div>
+								<div className="navbar-dropdown is-boxed">
+									<a className="navbar-item" href="#">
 										Logout
-								</Navbar.Item>
-								</Navbar.Dropdown>
-							</Navbar.Item>
-						</Navbar.Container>
-					</Navbar.Menu>
+          							</a>
+								</div>
+							</div>
+						</div>
+					</div>
 				</Navbar>
 
 				<Section>
@@ -270,8 +376,6 @@ class App extends React.Component {
 									diaries={this.state.diaries}
 								></DiaryLeftContent>
 							</Tile>
-							{/* some basic options (add new diary) */}
-							{/* list of date */}
 						</Tile>
 
 						<Tile kind="parent" size={6}>
@@ -280,19 +384,19 @@ class App extends React.Component {
 							<Tile kind="child" notification color="info" size={12}>
 								<DiaryRightContent
 									diary={this.state.diaries[this.state.currentViewingIndex]}
-									key={this.state.currentViewingIndex !== -1 ? this.state.diaries[this.state.currentViewingIndex].id : 0}
+									key={diaryRightContentKey}
 									handleDiarySave={this.handleDiarySave}
 									handleDiaryDelete={this.handleDiaryDelete}
+									handleDiaryCreateCancel={this.handleDiaryCreateCancel}
+									create_mode={this.state.create_mode}
 								></DiaryRightContent>
 							</Tile>
 						</Tile>
 					</Tile>
 				</Section>
-			</Box>
-
+			</Box >
 		);
 	}
-
 }
 
 export default App;
