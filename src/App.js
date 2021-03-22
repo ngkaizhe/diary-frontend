@@ -1,140 +1,255 @@
+// react modules
 import React from 'react';
+import axios from 'axios';
 
-import Button from 'react-bulma-components/lib/components/button';
-import Heading from 'react-bulma-components/lib/components/heading';
+// bulma modules
 import Section from 'react-bulma-components/lib/components/section';
 import Tile from 'react-bulma-components/lib/components/tile';
 import Navbar from 'react-bulma-components/lib/components/navbar';
 import Box from 'react-bulma-components/lib/components/box';
-import { Field, Control, Label, Input, Textarea } from 'react-bulma-components/lib/components/form';
 
+// my own modules
+import DiaryLeftContent from './DiaryLeftContent';
+import DiaryRightContent from './DiaryRightContent';
+
+// date format changing
+import { compareAsc } from 'date-fns'
+
+// css files
 import './App.scss';
 
+const apiClient = axios.create({
+	withCredentials: true
+});
 
-class DiaryContent extends React.Component {
+
+class App extends React.Component {
 	constructor(props) {
 		super(props);
+
 		this.state = {
-			diary_title: 'The title of the diary',
-			diary_content: 'Self Internal Thoughts\nYesterday night, I cant really sleep well. I go to bed around 0000, cant sleep and just lying on the bed until 0130.\n\nFor the time of 1 hour and 30 minutes, I was thinking my previous relationship with Felicia. The things that I had been doing wrong, the happiness I get when I was in that relationship, how cute is she when I looked her in her eyes. That period of time is really sweet for me, I think that I am the luckiest man in the world. She is really beatiful, mature, shy, cute. I was also thinking of how bad, laziness I am, when we are in the relationship, she didn\'t even feel a single afraid of the future between us, but what I have done is just being a coward. A coward that scared to handle the relationship, scared to face the problems that brought from the relationship, scared to the one to be responsible for the relationship. I promised myself, I will be brave to solve all of those problems.\n\n\n\nAt the evening, I have a conversation with my parents. It is so ashame for me, I just keep saying that I need to do my homework, in order to end the conversation as fast as possible. My father, mother and me have a talk about the dental fee problems, and we have the conclusion, that if the dental fee is quite high, then I must have to note them before I have any futher actions. How funny that I just keep ignoring the suggestion from them. I really feel sorry for them, but I just don\'t want to say that through the phone, I will go to do that when I reach home. When face to face, I will be good to them to overcome those damage that I made to them because of my childishness.',
+			user_token: '1|nB8uQJEW3p9u0eH94ucgWTTHy5YvJXwmv5B5nEKK',
+			diaries: [],
+			currentViewingIndex: -1,
 		};
 
-		this.handleChange = this.handleChange.bind(this);
-		this.handleSave = this.handleSave.bind(this);
-		this.handleCancel = this.handleCancel.bind(this);
+		this.handleDiarySave = this.handleDiarySave.bind(this);
+		this.handleDiaryAbstractOnClick = this.handleDiaryAbstractOnClick.bind(this);
 	}
 
-	handleChange(evt) {
-		const value = evt.target.value;
-		this.setState({
-			[evt.target.name]: value,
+	handleDiarySave(diary) {
+		// save the data for frontend cache
+		var diaries = this.state.diaries;
+		diaries.forEach((element) => {
+			if (element.id === diary.id) {
+				element.title = diary.title;
+				element.content = diary.content;
+				diary = element;
+			}
 		});
+
+		this.setState({
+			diaries: diaries,
+		});
+
+
+		// save the data for backend
+		this.updateDiaries(diary);
 	}
 
-	handleSave(event) {
-		console.log('Diary Title is: ' + this.state.diary_title);
-		// save the diary data to the back end
-		event.preventDefault();
+	handleDiaryAbstractOnClick(diary_id) {
+		var currentViewingIndex = -1;
+
+		var find = this.state.diaries.some((element, index) => {
+			if (element.id === diary_id) {
+				currentViewingIndex = index;
+				return true;
+			}
+		});
+
+		if (find) {
+			// the diary from left view was clicked, we change the diary right content view
+			this.setState({
+				currentViewingIndex: currentViewingIndex,
+			});
+		}
+		else {
+			throw new Error('Something went wrong, the diary id passed from children component could not find!');
+		}
 	}
 
-	handleCancel(event) {
-		console.log('Diary Title is: ' + this.state.diary_title);
-		// redirect back to dashboard
-		event.preventDefault();
+	//#region backend approaches
+	// index
+	// get diaries from back end 
+	getDiaries() {
+		var diaries;
+
+		apiClient({
+			method: 'GET',
+			url: process.env.REACT_APP_BACKEND_DOMAIN + '/api/diaries',
+			headers: {
+				Authorization: "Bearer " + this.state.user_token,
+				Accept: "application/json",
+			},
+		})
+			.then((response) => {
+				diaries = response.data.diaries;
+				// resort
+				diaries.sort(
+					(diary1, diary2) => {
+						var date1 = new Date(diary1.diary_date);
+						var date2 = new Date(diary2.diary_date);
+
+						return compareAsc(date1, date2);
+					}
+				);
+				this.setState({
+					diaries: diaries,
+					currentViewingIndex: 0,
+				});
+			}).catch((error) => {
+				if (error.response) {
+					throw new Error('The status code is ' + error.response.status +
+						'\nThe status text is ' + error.response.statusText
+					);
+				}
+
+			});
+	}
+
+	// store
+	storeDiaries(diary) {
+		// fetch data from backend
+		// header
+		var myHeaders = new Headers();
+		myHeaders.append(
+			"Authorization", "Bearer " + this.state.user_token
+		);
+		myHeaders.append(
+			"Accept", "application/json"
+		);
+
+		// form data
+		var formdata = new FormData();
+		formdata.append("title", diary.title);
+		formdata.append("diary_date", diary.diary_date);
+		formdata.append("content", diary.content);
+
+		var requestOptions = {
+			method: 'POST',
+			headers: myHeaders,
+			body: formdata,
+		};
+
+		fetch(process.env.REACT_APP_BACKEND_DOMAIN + "/api/diaries", requestOptions)
+			.then((response) => {
+				if (response.ok) {
+					return response.text();
+				}
+				else {
+					throw new Error('Something went wrong, the status code is not 200');
+				}
+			})
+			.catch(error => console.log('Error', error));
+	}
+
+	// update
+	updateDiaries(diary) {
+		apiClient.get(process.env.REACT_APP_BACKEND_DOMAIN + '/sanctum/csrf-cookie')
+			.then(response => {
+				apiClient({
+					method: 'post',
+					url: process.env.REACT_APP_BACKEND_DOMAIN + '/api/diaries/' + diary.id,
+					data: {
+						title: diary.title,
+						content: diary.content,
+						diary_date: diary.diary_date,
+						_method: 'PUT',
+					},
+					headers: {
+						Authorization: "Bearer " + this.state.user_token,
+						Accept: "application/json",
+					},
+				}).catch((error) => {
+					if (error.response) {
+						throw new Error('The status code is ' + error.response.status +
+							'\nThe status text is ' + error.response.statusText
+						);
+					}
+				});
+			});
+	}
+
+	// destroy
+	destroyDiaries(diaries_id) {
+
+	}
+
+	//#endregion
+
+	componentDidMount() {
+		this.getDiaries();
 	}
 
 	render() {
 		return (
-			<>
-				<Field>
-					<Label>Title</Label>
-					<Control>
-						<Input
-							onChange={this.handleChange}
-							name="diary_title"
-							value={this.state.diary_title} />
-					</Control>
-				</Field>
+			<Box>
+				{/* navigation bar */}
+				<Navbar color="dark">
+					<Navbar.Brand>
+						<Navbar.Item renderAs="a" href="#">
+							My Diary
+						</Navbar.Item>
+						<Navbar.Burger />
+					</Navbar.Brand>
+					<Navbar.Menu>
+						<Navbar.Container position="end">
+							<Navbar.Item dropdown hoverable href="#">
+								<Navbar.Link>
+									Name of current person
+							  </Navbar.Link>
+								<Navbar.Dropdown>
+									<Navbar.Item href="#">
+										Logout
+								</Navbar.Item>
+								</Navbar.Dropdown>
+							</Navbar.Item>
+						</Navbar.Container>
+					</Navbar.Menu>
+				</Navbar>
 
-				<Field>
-					<Label>Content</Label>
-					<Control>
-						<Textarea
-							rows="20"
-							onChange={this.handleChange}
-							name="diary_content"
-							value={this.state.diary_content} />
-					</Control>
-				</Field>
+				<Section>
+					<Tile kind="ancestor">
+						<Tile kind="parent" size={6}>
+							{/* left side of main content */}
+							<Tile kind="child" notification color="primary" size={12}>
+								<DiaryLeftContent
+									handleDiaryAbstractOnClick={this.handleDiaryAbstractOnClick}
+									diaries={this.state.diaries}
+								></DiaryLeftContent>
+							</Tile>
+							{/* some basic options (add new diary) */}
+							{/* list of date */}
+						</Tile>
 
-				<Field kind="group">
-					<Control>
-						<Button type="primary" onClick={this.handleSave}>Save</Button>
-					</Control>
-					<Control>
-						<Button color="link" onClick={this.handleCancel}>Cancel</Button>
-					</Control>
-				</Field>
-			</>
+						<Tile kind="parent" size={6}>
+							{/* right side of main content */}
+							{/* the content of the diary */}
+							<Tile kind="child" notification color="info" size={12}>
+								<DiaryRightContent
+									diary={this.state.diaries[this.state.currentViewingIndex]}
+									key={this.state.currentViewingIndex}
+									handleDiarySave={this.handleDiarySave}
+								></DiaryRightContent>
+							</Tile>
+						</Tile>
+					</Tile>
+				</Section>
+			</Box>
 
 		);
-
 	}
-}
 
-
-function App() {
-	return (
-		<Box>
-			{/* navigation bar */}
-			<Navbar color="dark">
-				<Navbar.Brand>
-					<Navbar.Item renderAs="a" href="#">
-						My Diary
-					</Navbar.Item>
-					<Navbar.Burger />
-				</Navbar.Brand>
-				<Navbar.Menu>
-					<Navbar.Container position="end">
-						<Navbar.Item dropdown hoverable href="#">
-							<Navbar.Link>
-								Name of current person
-              			</Navbar.Link>
-							<Navbar.Dropdown>
-								<Navbar.Item href="#">
-									Logout
-                			</Navbar.Item>
-							</Navbar.Dropdown>
-						</Navbar.Item>
-					</Navbar.Container>
-				</Navbar.Menu>
-			</Navbar>
-
-			<Section>
-				<Tile kind="ancestor">
-					<Tile kind="parent">
-						{/* left side of main content */}
-						<Tile renderAs="article" kind="child" notification color="primary" >
-							<Heading>Left Tile</Heading>
-						</Tile>
-						{/* some basic options (add new diary) */}
-						{/* list of date */}
-					</Tile>
-
-					<Tile kind="parent">
-						{/* right side of main content */}
-						{/* the content of the diary */}
-						<Tile kind="child" notification color="info" >
-							<DiaryContent></DiaryContent>
-						</Tile>
-					</Tile>
-				</Tile>
-
-			</Section>
-
-		</Box>
-
-	);
 }
 
 export default App;
