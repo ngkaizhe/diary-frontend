@@ -18,7 +18,7 @@ import { format, compareAsc } from 'date-fns'
 // css files
 import './DiaryDashboard.scss';
 
-const apiClient = axios.create({
+export const apiClient = axios.create({
     withCredentials: true
 });
 
@@ -28,7 +28,7 @@ class DiaryDashboard extends React.Component {
         super(props);
 
         this.state = {
-            user_token: '1|nB8uQJEW3p9u0eH94ucgWTTHy5YvJXwmv5B5nEKK',
+            user_token: sessionStorage.getItem('user_token'),
             diaries: [],
             currentViewingIndex: -1,
 
@@ -79,9 +79,10 @@ class DiaryDashboard extends React.Component {
 
     //#region Handle some function from the children component
     handleDiarySave(diary) {
+        var diaries;
         // store
         if (this.state.create_mode) {
-            var diaries = this.state.diaries;
+            diaries = this.state.diaries;
             diary.diary_date = diaries[diaries.length - 1].diary_date;
             diaries[diaries.length - 1] = diary;
 
@@ -96,7 +97,7 @@ class DiaryDashboard extends React.Component {
         // update
         else {
             // save the data for frontend cache
-            var diaries = this.state.diaries;
+            diaries = this.state.diaries;
             diaries.forEach((element) => {
                 if (element.id === diary.id) {
                     element.title = diary.title;
@@ -246,13 +247,6 @@ class DiaryDashboard extends React.Component {
 
     // update
     updateDiaries(diary) {
-        if (false) {
-            apiClient.get(process.env.REACT_APP_BACKEND_DOMAIN + '/sanctum/csrf-cookie')
-                .then(response => {
-
-                });
-        }
-
         apiClient({
             method: 'post',
             url: process.env.REACT_APP_BACKEND_DOMAIN + '/api/diaries/' + diary.id,

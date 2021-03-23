@@ -1,13 +1,12 @@
 // react modules
 import React from 'react';
-import axios from 'axios';
 
 // bulma modules
 import Navbar from 'react-bulma-components/lib/components/navbar';
 import Box from 'react-bulma-components/lib/components/box';
 import Heading from 'react-bulma-components/lib/components/heading';
 import Columns from 'react-bulma-components/lib/components/columns';
-import { Field, Control, Label, Input } from 'react-bulma-components/lib/components/form';
+import { Field, Control, Label, Input, Help } from 'react-bulma-components/lib/components/form';
 import Button from 'react-bulma-components/lib/components/button';
 
 // css files
@@ -15,25 +14,32 @@ import './App.scss';
 
 // children modules
 import DiaryDashboard from 'DiaryDashboard';
+import { apiClient } from 'DiaryDashboard';
 
 class App extends React.Component {
 	constructor(props) {
 		super(props);
 
-		this.state = {
-			hasLogin: false,
-			user_token: '',
-		}
+		this.handleSetUserToken = this.handleSetUserToken.bind(this);
+	}
+
+	handleSetUserToken(user_token) {
+		sessionStorage.setItem('user_token', user_token);
+		this.forceUpdate();
 	}
 
 	render() {
 		var page;
+		var hasLogin = sessionStorage.getItem('user_token') ? true : false;
 
-		if (this.state.hasLogin) {
-			page = <DiaryDashboard />;
+		if (hasLogin) {
+			page = <DiaryDashboard
+			/>;
 		}
 		else {
-			page = <AuthPage />;
+			page = <AuthPage
+				handleSetUserToken={this.handleSetUserToken}
+			/>;
 		}
 
 		return (
@@ -48,15 +54,6 @@ class AuthPage extends React.Component {
 
 		this.state = {
 			isLoginPage: true,
-
-			// login
-			loginEmail: '',
-			loginPassword: '',
-
-			// register
-			registerEmail: '',
-			registerName: '',
-			registerPassword: '',
 
 			// navbar burger
 			isActive: false,
@@ -134,7 +131,9 @@ class AuthPage extends React.Component {
 					{/* navbar part */}
 					{navbarHTML}
 
-					<Login></Login>
+					<Login
+						handleSetUserToken={this.props.handleSetUserToken}
+					></Login>
 				</div>
 			);
 		}
@@ -158,6 +157,8 @@ class Login extends React.Component {
 		this.state = {
 			email: '',
 			password: '',
+
+			error: '',
 		}
 
 		this.handleChange = this.handleChange.bind(this);
@@ -171,11 +172,42 @@ class Login extends React.Component {
 		});
 	}
 
-	handleLogin() {
+	handleLogin(e) {
+		apiClient.get(process.env.REACT_APP_BACKEND_DOMAIN + '/sanctum/csrf-cookie')
+			.then(response => {
+				apiClient({
+					method: 'POST',
+					url: process.env.REACT_APP_BACKEND_DOMAIN + '/api/login',
+					headers: {
+						Accept: "application/json",
+					},
+					data: this.state,
+				}).then((response) => {
+					this.setState({
+						error: '',
+					});
 
+					var token = 'Bearer ' + response.data.token;
+					this.props.handleSetUserToken(token);
+				}).catch((error) => {
+					if (error.response) {
+						this.setState({
+							error: error.response.statusText,
+						});
+					}
+				});
+			});
+
+		e.preventDefault();
 	}
 
 	render() {
+		var error;
+
+		if (this.state.error !== '') {
+			error = <Help color="danger">The credential is invalid!</Help>
+		}
+
 		return (
 			<Columns>
 				<Columns.Column size="half" offset="one-quarter">
@@ -187,43 +219,47 @@ class Login extends React.Component {
 							Login Page
 						</Heading>
 
-						{/* user input part */}
-						<Field>
-							<Label>Email</Label>
-							<Control>
-								<Input
-									onChange={this.handleChange}
-									name="email"
-									type="email"
-									placeholder="Email"
-									color="black"
-									value={this.state.email}
-								/>
-							</Control>
-						</Field>
+						<form>
+							{/* user input part */}
+							<Field>
+								<Label>Email</Label>
+								<Control>
+									<Input
+										onChange={this.handleChange}
+										name="email"
+										type="email"
+										placeholder="Email"
+										color="black"
+										value={this.state.email}
+									/>
+								</Control>
+							</Field>
 
-						<Field>
-							<Label>Password</Label>
-							<Control>
-								<Input
-									onChange={this.handleChange}
-									name="password"
-									type="password"
-									placeholder="Password"
-									color="black"
-									value={this.state.password}
-								/>
-							</Control>
-						</Field>
+							<Field>
+								<Label>Password</Label>
+								<Control>
+									<Input
+										onChange={this.handleChange}
+										name="password"
+										type="password"
+										placeholder="Password"
+										color="black"
+										value={this.state.password}
+									/>
+								</Control>
+								{error}
+							</Field>
 
-						<Field>
-							<Control>
-								<Button
-									color="link"
-									onClick={this.handleLogin}
-								>Login</Button>
-							</Control>
-						</Field>
+							<Field>
+								<Control>
+									<Button
+										type="submit"
+										color="link"
+										onClick={this.handleLogin}
+									>Login</Button>
+								</Control>
+							</Field>
+						</form>
 					</Box>
 				</Columns.Column>
 			</Columns>
@@ -342,8 +378,6 @@ class Register extends React.Component {
 		);
 	}
 }
-
-
 
 
 export default App;
