@@ -21,10 +21,16 @@ class App extends React.Component {
 		super(props);
 
 		this.handleSetUserToken = this.handleSetUserToken.bind(this);
+		this.logout = this.logout.bind(this);
 	}
 
-	handleSetUserToken(user_token) {
+	handleSetUserToken(user_token, username) {
 		sessionStorage.setItem('user_token', user_token);
+		sessionStorage.setItem('username', username);
+		this.forceUpdate();
+	}
+
+	logout() {
 		this.forceUpdate();
 	}
 
@@ -34,6 +40,7 @@ class App extends React.Component {
 
 		if (hasLogin) {
 			page = <DiaryDashboard
+				logout={this.logout}
 			/>;
 		}
 		else {
@@ -60,7 +67,6 @@ class AuthPage extends React.Component {
 		}
 
 		this.handleChange = this.handleChange.bind(this);
-		this.handleLogin = this.handleLogin.bind(this);
 	}
 
 	handleChange(evt) {
@@ -68,10 +74,6 @@ class AuthPage extends React.Component {
 		this.setState({
 			[evt.target.name]: value,
 		});
-	}
-
-	handleLogin() {
-
 	}
 
 	handleChangeRoute(isLoginPage) {
@@ -143,7 +145,9 @@ class AuthPage extends React.Component {
 					{/* navbar part */}
 					{navbarHTML}
 
-					<Register></Register>
+					<Register
+						changeRouteToLoginPage={this.handleChangeRoute.bind(this, true)}
+					></Register>
 				</div>
 			);
 		}
@@ -188,7 +192,7 @@ class Login extends React.Component {
 					});
 
 					var token = 'Bearer ' + response.data.token;
-					this.props.handleSetUserToken(token);
+					this.props.handleSetUserToken(token, response.data.username);
 				}).catch((error) => {
 					if (error.response) {
 						this.setState({
@@ -276,6 +280,8 @@ class Register extends React.Component {
 			email: '',
 			password: '',
 			password_confirmation: '',
+
+			error: [],
 		}
 
 		this.handleChange = this.handleChange.bind(this);
@@ -289,12 +295,59 @@ class Register extends React.Component {
 		});
 	}
 
-	handleRegister() {
+	handleRegister(e) {
+		apiClient.get(process.env.REACT_APP_BACKEND_DOMAIN + '/sanctum/csrf-cookie').then(response => {
+			apiClient({
+				method: 'POST',
+				url: process.env.REACT_APP_BACKEND_DOMAIN + '/api/register',
+				headers: {
+					Accept: "application/json",
+				},
+				data: this.state,
+			}).then((response) => {
+				this.setState({
+					error: [],
+				});
+				alert('The account has already been finished created!\nPlease login!');
+				this.props.changeRouteToLoginPage();
 
+			}).catch((error) => {
+				if (error.response) {
+					var errors = [];
+
+					for (var key in error.response.data.message) {
+						error.response.data.message[key].forEach((value) => {
+							errors.push(value);
+						});
+					}
+
+					this.setState({
+						error: errors,
+					});
+				}
+			});
+		});
+
+
+		e.preventDefault();
 	}
 
 
 	render() {
+		var error;
+
+		if (this.state.error !== []) {
+			error = this.state.error.map((value, index) => {
+				return (
+					<Help
+						color="danger"
+						key={index}
+					>{value}
+					</Help>
+				);
+			});
+		}
+
 		return (
 			<Columns>
 				<Columns.Column size="half" offset="one-quarter">
@@ -362,11 +415,13 @@ class Register extends React.Component {
 									value={this.state.password_confirmation}
 								/>
 							</Control>
+							{error}
 						</Field>
 
 						<Field>
 							<Control>
 								<Button
+									type="submit"
 									color="link"
 									onClick={this.handleRegister}
 								>Register</Button>

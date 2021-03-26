@@ -45,6 +45,8 @@ class DiaryDashboard extends React.Component {
         this.handleDiaryCreateCancel = this.handleDiaryCreateCancel.bind(this);
 
         this.handleCreateDiary = this.handleCreateDiary.bind(this);
+
+        this.logout = this.logout.bind(this);
     }
 
     handleCreateDiary(e) {
@@ -290,6 +292,27 @@ class DiaryDashboard extends React.Component {
         });
     }
 
+    // user logout
+    logout() {
+
+        apiClient({
+            method: 'POST',
+            url: process.env.REACT_APP_BACKEND_DOMAIN + '/api/logout',
+            headers: {
+                Accept: "application/json",
+                Authorization: 'Bearer ' + this.state.user_token,
+            },
+        }).then((response) => {
+
+            // delete session storage value
+            sessionStorage.removeItem('username');
+            sessionStorage.removeItem('user_token');
+
+            alert('Logout successfully');
+
+            this.props.logout();
+        });
+    }
     //#endregion
 
     componentDidMount() {
@@ -309,6 +332,10 @@ class DiaryDashboard extends React.Component {
         else {
             diaryRightContentKey = 0;
         }
+
+        // the username
+        var username;
+        username = sessionStorage.getItem('username');
 
         return (
             <Box>
@@ -348,10 +375,10 @@ class DiaryDashboard extends React.Component {
                         <div className="navbar-end">
                             <div className="navbar-item has-dropdown is-hoverable">
                                 <div className="navbar-link is-unselectable">
-                                    Name of current person
-        						</div>
+                                    {username}
+                                </div>
                                 <div className="navbar-dropdown is-boxed">
-                                    <a className="navbar-item" href="#">
+                                    <a className="navbar-item" onClick={this.logout}>
                                         Logout
           							</a>
                                 </div>
