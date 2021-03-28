@@ -177,6 +177,10 @@ class Login extends React.Component {
 	}
 
 	handleLogin(e) {
+		this.setState({
+			error: [],
+		});
+
 		apiClient.get(process.env.REACT_APP_BACKEND_DOMAIN + '/sanctum/csrf-cookie')
 			.then(response => {
 				apiClient({
@@ -296,6 +300,10 @@ class Register extends React.Component {
 	}
 
 	handleRegister(e) {
+		this.setState({
+			error: [],
+		});
+
 		apiClient.get(process.env.REACT_APP_BACKEND_DOMAIN + '/sanctum/csrf-cookie').then(response => {
 			apiClient({
 				method: 'POST',
@@ -360,73 +368,75 @@ class Register extends React.Component {
 							Register Page
         				</Heading>
 
-						{/* user input part */}
-						<Field>
-							<Label>Name</Label>
-							<Control>
-								<Input
-									onChange={this.handleChange}
-									name="name"
-									type="text"
-									placeholder="Name"
-									color="black"
-									value={this.state.name}
-								/>
-							</Control>
-						</Field>
+						<form>
+							{/* user input part */}
+							<Field>
+								<Label>Name</Label>
+								<Control>
+									<Input
+										onChange={this.handleChange}
+										name="name"
+										type="text"
+										placeholder="Name"
+										color="black"
+										value={this.state.name}
+									/>
+								</Control>
+							</Field>
 
-						<Field>
-							<Label>Email</Label>
-							<Control>
-								<Input
-									onChange={this.handleChange}
-									name="email"
-									type="email"
-									placeholder="Email"
-									color="black"
-									value={this.state.email}
-								/>
-							</Control>
-						</Field>
+							<Field>
+								<Label>Email</Label>
+								<Control>
+									<Input
+										onChange={this.handleChange}
+										name="email"
+										type="email"
+										placeholder="Email"
+										color="black"
+										value={this.state.email}
+									/>
+								</Control>
+							</Field>
 
-						<Field>
-							<Label>Password</Label>
-							<Control>
-								<Input
-									onChange={this.handleChange}
-									name="password"
-									type="password"
-									placeholder="Password"
-									color="black"
-									value={this.state.password}
-								/>
-							</Control>
-						</Field>
+							<Field>
+								<Label>Password</Label>
+								<Control>
+									<Input
+										onChange={this.handleChange}
+										name="password"
+										type="password"
+										placeholder="Password"
+										color="black"
+										value={this.state.password}
+									/>
+								</Control>
+							</Field>
 
-						<Field>
-							<Label>Password Confirmation</Label>
-							<Control>
-								<Input
-									onChange={this.handleChange}
-									name="password_confirmation"
-									type="password"
-									placeholder="Password Confirmation"
-									color="black"
-									value={this.state.password_confirmation}
-								/>
-							</Control>
-							{error}
-						</Field>
+							<Field>
+								<Label>Password Confirmation</Label>
+								<Control>
+									<Input
+										onChange={this.handleChange}
+										name="password_confirmation"
+										type="password"
+										placeholder="Password Confirmation"
+										color="black"
+										value={this.state.password_confirmation}
+									/>
+								</Control>
+								{error}
+							</Field>
 
-						<Field>
-							<Control>
-								<Button
-									type="submit"
-									color="link"
-									onClick={this.handleRegister}
-								>Register</Button>
-							</Control>
-						</Field>
+							<Field>
+								<Control>
+									<Button
+										type="submit"
+										color="link"
+										onClick={this.handleRegister}
+									>Register</Button>
+								</Control>
+							</Field>
+						</form>
 					</Box>
 				</Columns.Column>
 			</Columns>
