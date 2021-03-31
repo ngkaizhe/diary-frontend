@@ -162,7 +162,7 @@ class Login extends React.Component {
 			email: '',
 			password: '',
 
-			error: '',
+			error: [],
 		}
 
 		this.handleChange = this.handleChange.bind(this);
@@ -192,15 +192,23 @@ class Login extends React.Component {
 					data: this.state,
 				}).then((response) => {
 					this.setState({
-						error: '',
+						error: [],
 					});
 
 					var token = 'Bearer ' + response.data.token;
 					this.props.handleSetUserToken(token, response.data.username);
 				}).catch((error) => {
 					if (error.response) {
+						var errors = [];
+
+						for (var key in error.response.data.message) {
+							error.response.data.message[key].forEach((value) => {
+								errors.push(value);
+							});
+						}
+
 						this.setState({
-							error: error.response.statusText,
+							error: errors,
 						});
 					}
 				});
@@ -212,7 +220,7 @@ class Login extends React.Component {
 	render() {
 		var error;
 
-		if (this.state.error !== '') {
+		if (this.state.error.length !== 0) {
 			error = <Help color="danger">The credential is invalid!</Help>
 		}
 
@@ -344,7 +352,7 @@ class Register extends React.Component {
 	render() {
 		var error;
 
-		if (this.state.error !== []) {
+		if (this.state.error.length !== 0) {
 			error = this.state.error.map((value, index) => {
 				return (
 					<Help

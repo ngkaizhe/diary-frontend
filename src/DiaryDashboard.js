@@ -203,6 +203,7 @@ class DiaryDashboard extends React.Component {
                         return compareAsc(date1, date2);
                     }
                 );
+
                 this.setState({
                     diaries: diaries,
                     currentViewingIndex: 0,
@@ -325,12 +326,12 @@ class DiaryDashboard extends React.Component {
         if (this.state.create_mode) {
             diaryRightContentKey = -1;
         }
+        // we dont have any diaries content yet (refreshing page, or new user)
+        else if (this.state.diaries.length === 0) {
+            diaryRightContentKey = 0;
+        }
         else if (this.state.currentViewingIndex !== -1) {
             diaryRightContentKey = this.state.diaries[this.state.currentViewingIndex].id;
-        }
-        // default condition, that when refreshing the page, we dont have any diaries content yet
-        else {
-            diaryRightContentKey = 0;
         }
 
         // the username
