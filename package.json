@@ -53,5 +53,8 @@
   "devDependencies": {
     "raw-loader": "^4.0.2",
     "webpack": "^4.44.2"
+  },
+  "engines": {
+    "node": "14.x"
   }
 }

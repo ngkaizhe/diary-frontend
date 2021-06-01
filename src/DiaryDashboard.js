@@ -228,6 +228,14 @@ class DiaryDashboard extends React.Component {
             },
             data: diary,
         }).then((response) => {
+            // for gtm tracking purpose
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                event: 'DiaryCreate-formSubmission',
+                category: 'Diary Created',
+                action: 'Diary Created Successfully'
+            });
+
             // update the id values
             var diaries = this.state.diaries;
             var currentViewingIndex = diaries.length - 1;
@@ -263,6 +271,14 @@ class DiaryDashboard extends React.Component {
                 Authorization: "Bearer " + this.state.user_token,
                 Accept: "application/json",
             },
+        }).then(() => {
+            // for gtm tracking purpose
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                event: 'DiaryUpdate-formSubmission',
+                category: 'Diary Updated',
+                action: 'Diary Updated Successfully'
+            });
         }).catch((error) => {
             if (error.response) {
                 throw new Error('The status code is ' + error.response.status +
@@ -284,6 +300,14 @@ class DiaryDashboard extends React.Component {
                 Authorization: "Bearer " + this.state.user_token,
                 Accept: "application/json",
             },
+        }).then(() => {
+            // for gtm tracking purpose
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                event: 'DiaryDeleted-formSubmission',
+                category: 'Diary Deleted',
+                action: 'Diary Deleted Successfully'
+            });
         }).catch((error) => {
             if (error.response) {
                 throw new Error('The status code is ' + error.response.status +

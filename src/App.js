@@ -191,6 +191,14 @@ class Login extends React.Component {
 					},
 					data: this.state,
 				}).then((response) => {
+					// for gtm tracking purpose
+					window.dataLayer = window.dataLayer || [];
+					window.dataLayer.push({
+						event: 'Login-formSubmission',
+						category: 'User Login',
+						action: 'Login Successfully'
+					});
+
 					this.setState({
 						error: [],
 					});
@@ -324,6 +332,15 @@ class Register extends React.Component {
 				this.setState({
 					error: [],
 				});
+
+				// for gtm tracking purpose
+				window.dataLayer = window.dataLayer || [];
+				window.dataLayer.push({
+					event: 'Register-formSubmission',
+					category: 'User Register',
+					action: 'Register Successfully'
+				});
+
 				alert('The account has already been finished created!\nPlease login!');
 				this.props.changeRouteToLoginPage();
 
