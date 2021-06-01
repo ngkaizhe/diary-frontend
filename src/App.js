@@ -203,7 +203,7 @@ class Login extends React.Component {
 						error: [],
 					});
 
-					var token = 'Bearer ' + response.data.token;
+					var token = response.data.token;
 					this.props.handleSetUserToken(token, response.data.username);
 				}).catch((error) => {
 					if (error.response) {
