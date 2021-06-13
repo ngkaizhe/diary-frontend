@@ -19,7 +19,7 @@ import { format, compareAsc } from 'date-fns'
 import './DiaryDashboard.scss';
 
 export const apiClient = axios.create({
-    withCredentials: false
+    withCredentials: true
 });
 
 
